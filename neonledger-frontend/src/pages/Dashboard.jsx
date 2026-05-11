@@ -398,9 +398,9 @@ export default function Dashboard() {
                           {monthlyData.map((entry, i) => {
                             const maxTotal = Math.max(...monthlyData.map(m => m.total), 1)
                             const intensity = entry.total / maxTotal
-                            const r = Math.round(0 + intensity * 0)
-                            const g = Math.round(100 + intensity * 155)
-                            const b = Math.round(120 + intensity * 80)
+                            const r = Math.round(40 + intensity * 54)
+                            const g = Math.round(130 + intensity * 57)
+                            const b = Math.round(200 + intensity * 55)
                             return <Cell key={i} fill={entry.total === 0 ? '#1a1a1a' : `rgb(${r}, ${g}, ${b})`} />
                           })}
                         </Bar>
