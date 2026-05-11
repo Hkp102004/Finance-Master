@@ -32,6 +32,7 @@ export const transactionsAPI = {
   update: (id, data) => api.put(`/transactions/${id}`, data),
   remove: (id) => api.delete(`/transactions/${id}`),
   summary: () => api.get('/transactions/summary'),
+  monthly: (year) => api.get('/transactions/monthly', { params: { year } }),
   resetAll: () => api.delete('/transactions/reset-all'),
   importCSV: (file) => {
     const form = new FormData()

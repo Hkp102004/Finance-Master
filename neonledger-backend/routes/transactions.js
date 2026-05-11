@@ -113,7 +113,42 @@ router.get('/summary', async (req, res, next) => {
   }
 })
 
+// GET /api/transactions/monthly — monthly spending for the current year
+router.get('/monthly', async (req, res, next) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear()
+    const startOfYear = new Date(year, 0, 1)
+    const endOfYear = new Date(year + 1, 0, 1)
 
+    const monthlyData = await Transaction.aggregate([
+      {
+        $match: {
+          userId: req.user._id,
+          date: { $gte: startOfYear, $lt: endOfYear },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: '$date' },
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ])
+
+    const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const result = MONTH_NAMES.map((name, i) => {
+      const found = monthlyData.find((m) => m._id === i + 1)
+      return { month: name, total: found ? found.total : 0, count: found ? found.count : 0 }
+    })
+
+    const yearTotal = result.reduce((s, m) => s + m.total, 0)
+    res.json({ monthly: result, year, yearTotal })
+  } catch (err) {
+    next(err)
+  }
+})
 
 // POST /api/transactions/import-csv
 router.post('/import-csv', upload.single('file'), async (req, res, next) => {

@@ -12,7 +12,7 @@ const CAT_COLORS = {
 
 const BUDGET_PRESETS = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000]
 
-const TABS = ['ADD', 'TRANSACTIONS', 'INSIGHTS', 'BUDGET']
+const TABS = ['ADD', 'TRANSACTIONS', 'INSIGHTS', 'BUDGET', 'TRACKER']
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -41,6 +41,12 @@ export default function Dashboard() {
   const [resetConfirm, setResetConfirm] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
 
+  // Monthly tracker state
+  const [monthlyData, setMonthlyData] = useState([])
+  const [trackerYear, setTrackerYear] = useState(new Date().getFullYear())
+  const [yearTotal, setYearTotal] = useState(0)
+  const [monthlyLoading, setMonthlyLoading] = useState(false)
+
   const fetchAll = useCallback(async () => {
     try {
       const [txRes, sumRes] = await Promise.all([
@@ -52,7 +58,17 @@ export default function Dashboard() {
     } catch {}
   }, [])
 
+  const fetchMonthly = useCallback(async (year) => {
+    setMonthlyLoading(true)
+    try {
+      const res = await transactionsAPI.monthly(year)
+      setMonthlyData(res.data.monthly)
+      setYearTotal(res.data.yearTotal)
+    } catch {} finally { setMonthlyLoading(false) }
+  }, [])
+
   useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => { fetchMonthly(trackerYear) }, [trackerYear, fetchMonthly])
 
   const total = transactions.reduce((s, t) => s + t.amount, 0)
   const topCat = summary[0]?._id || '—'
@@ -78,6 +94,7 @@ export default function Dashboard() {
       await transactionsAPI.create({ ...form, amount: parseFloat(form.amount), category: form.category || 'Other' })
       setForm({ description: '', amount: '', date: new Date().toISOString().split('T')[0], category: '' })
       await fetchAll()
+      fetchMonthly(trackerYear)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add transaction')
     } finally { setTxLoading(false) }
@@ -86,6 +103,7 @@ export default function Dashboard() {
   const deleteTx = async (id) => {
     await transactionsAPI.remove(id)
     await fetchAll()
+    fetchMonthly(trackerYear)
   }
 
   const resetAllTransactions = async () => {
@@ -97,6 +115,8 @@ export default function Dashboard() {
       setResetConfirm(false)
       setBudgetResult(null)
       setBudgetAiText('')
+      setMonthlyData([])
+      setYearTotal(0)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to reset transactions')
     } finally { setResetLoading(false) }
@@ -297,6 +317,7 @@ export default function Dashboard() {
                       <Tooltip
                         contentStyle={{ background: '#0d0d0d', border: '1px solid #222', borderRadius: 8, fontFamily: 'Share Tech Mono', fontSize: 12 }}
                         labelStyle={{ color: '#fff' }}
+                        itemStyle={{ color: '#fff' }}
                         formatter={(v) => [`₹${v.toLocaleString('en-IN')}`, 'Spent']}
                       />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
@@ -325,6 +346,86 @@ export default function Dashboard() {
                   : aiText || '// press a button above to analyze your spending with AI'
                 }
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TRACKER TAB */}
+        {tab === 'TRACKER' && (
+          <div className="tab-content" style={{ animation: 'fadeUp 0.3s ease' }}>
+            <div className="panel">
+              <div className="panel-header-row">
+                <div className="panel-title">MONTHLY EXPENSE TRACKER</div>
+                <div className="tracker-year-nav">
+                  <button className="tracker-year-btn" onClick={() => setTrackerYear(y => y - 1)}>◀</button>
+                  <span className="tracker-year-label">{trackerYear}</span>
+                  <button className="tracker-year-btn" onClick={() => setTrackerYear(y => y + 1)} disabled={trackerYear >= new Date().getFullYear()}>▶</button>
+                </div>
+              </div>
+
+              {monthlyLoading ? (
+                <div className="empty"><span className="ai-loading">// loading monthly data...</span></div>
+              ) : yearTotal === 0 ? (
+                <div className="empty">// no expenses recorded for {trackerYear}</div>
+              ) : (
+                <>
+                  <div className="tracker-stats-row">
+                    <div className="tracker-stat">
+                      <span className="tracker-stat-label">YEAR TOTAL</span>
+                      <span className="tracker-stat-value accent">₹{yearTotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="tracker-stat">
+                      <span className="tracker-stat-label">MONTHLY AVG</span>
+                      <span className="tracker-stat-value">₹{Math.round(yearTotal / Math.max(monthlyData.filter(m => m.total > 0).length, 1)).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="tracker-stat">
+                      <span className="tracker-stat-label">PEAK MONTH</span>
+                      <span className="tracker-stat-value red">{monthlyData.reduce((max, m) => m.total > max.total ? m : max, monthlyData[0])?.month || '—'}</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 280 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <XAxis dataKey="month" tick={{ fill: '#999', fontSize: 11, fontFamily: 'Share Tech Mono' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: '#666', fontSize: 11, fontFamily: 'Share Tech Mono' }} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          contentStyle={{ background: '#0d0d0d', border: '1px solid #222', borderRadius: 8, fontFamily: 'Share Tech Mono', fontSize: 12 }}
+                          labelStyle={{ color: '#fff' }}
+                          itemStyle={{ color: '#fff' }}
+                          formatter={(v) => [`₹${v.toLocaleString('en-IN')}`, 'Spent']}
+                        />
+                        <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+                          {monthlyData.map((entry, i) => {
+                            const maxTotal = Math.max(...monthlyData.map(m => m.total), 1)
+                            const intensity = entry.total / maxTotal
+                            const r = Math.round(0 + intensity * 0)
+                            const g = Math.round(100 + intensity * 155)
+                            const b = Math.round(120 + intensity * 80)
+                            return <Cell key={i} fill={entry.total === 0 ? '#1a1a1a' : `rgb(${r}, ${g}, ${b})`} />
+                          })}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Monthly breakdown list */}
+                  <div className="tracker-list">
+                    {monthlyData.map(m => (
+                      <div key={m.month} className={`tracker-month-row ${m.total === 0 ? 'empty-month' : ''}`}>
+                        <span className="tracker-month-name">{m.month}</span>
+                        <div className="tracker-month-bar-bg">
+                          <div
+                            className="tracker-month-bar-fill"
+                            style={{ width: `${yearTotal > 0 ? (m.total / Math.max(...monthlyData.map(x => x.total), 1)) * 100 : 0}%` }}
+                          />
+                        </div>
+                        <span className="tracker-month-amt">₹{m.total.toLocaleString('en-IN')}</span>
+                        <span className="tracker-month-count">{m.count} tx</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
