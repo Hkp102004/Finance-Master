@@ -3,6 +3,35 @@ import { useAuth } from '../context/AuthContext'
 import { transactionsAPI, aiAPI } from '../services/api'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
+// Available memes and their trigger conditions (Gen Z only)
+const MEME_MAP = [
+  { id: 'broke', src: '/memes/broke.webp', keywords: ['broke', 'cooked', 'no money', 'empty wallet', 'rip', 'L ', 'down bad', 'embarrassing'], conditions: ['overBudget'] },
+  { id: 'food_addiction', src: '/memes/food_addiction.png', keywords: ['food', 'eating', 'zomato', 'swiggy', 'restaurant', 'dining', 'butter chicken', 'biryani', 'snack', 'order'], conditions: ['topFood'] },
+  { id: 'good_job', src: '/memes/good_job.png', keywords: ['slay', 'W ', 'understood the assignment', 'amazing', 'great', 'killing it', 'nice', 'proud', 'well done', 'goat', 'king', 'queen'], conditions: ['underBudget', 'lowSpending'] },
+  { id: 'overspending', src: '/memes/overspending.webp', keywords: ['overspend', 'too much', 'yikes', 'big yikes', 'unhinged', 'out of control', 'wild', 'insane', 'burning', 'hemorrhaging'], conditions: ['overBudget', 'highSpending'] },
+  { id: 'shopping_addict', src: '/memes/shopping_addict.png', keywords: ['shopping', 'amazon', 'flipkart', 'haul', 'impulse', 'retail therapy', 'cart', 'buy'], conditions: ['topShopping'] },
+]
+
+const pickMemes = (aiText, { summary = [], budgetExceeded = null, topCategory = '' } = {}) => {
+  if (!aiText) return []
+  const lower = aiText.toLowerCase()
+  const scores = MEME_MAP.map(meme => {
+    let score = 0
+    meme.keywords.forEach(kw => {
+      if (lower.includes(kw.toLowerCase())) score += 2
+    })
+    meme.conditions.forEach(cond => {
+      if (cond === 'overBudget' && budgetExceeded === true) score += 3
+      if (cond === 'underBudget' && budgetExceeded === false) score += 3
+      if (cond === 'topFood' && topCategory === 'Food') score += 3
+      if (cond === 'topShopping' && topCategory === 'Shopping') score += 3
+      if (cond === 'highSpending' && budgetExceeded === true) score += 2
+      if (cond === 'lowSpending' && budgetExceeded === false) score += 2
+    })
+    return { ...meme, score }
+  })
+  return scores.filter(m => m.score > 0).sort((a, b) => b.score - a.score).slice(0, 2)
+}
 
 const CATEGORIES = ['Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Housing', 'Other']
 const CAT_COLORS = {
@@ -147,7 +176,7 @@ export default function Dashboard() {
     setAiLoading(true)
     setAiText('')
     try {
-      const res = await aiAPI.insights(insightsTone)
+      const res = await aiAPI.insights(insightsTone, monthlyBudget)
       setAiText(res.data.insights)
     } catch (err) {
       setAiText('Error: ' + (err.response?.data?.message || 'AI unavailable'))
@@ -158,7 +187,7 @@ export default function Dashboard() {
     setAiLoading(true)
     setAiText('')
     try {
-      const res = await aiAPI.tips(insightsTone)
+      const res = await aiAPI.tips(insightsTone, monthlyBudget)
       setAiText(res.data.tips)
     } catch (err) {
       setAiText('Error: ' + (err.response?.data?.message || 'AI unavailable'))
@@ -234,7 +263,7 @@ export default function Dashboard() {
       <header className="dash-header">
         <div className="dash-logo">
           <span className="dash-logo-gem">◆</span>
-          <span className="dash-logo-name">NEONLEDGER</span>
+          <span className="dash-logo-name">FINANCE MASTER</span>
         </div>
         <nav className="dash-nav">
           {TABS.map(t => (
@@ -386,6 +415,23 @@ export default function Dashboard() {
                   : aiText || '// press a button above to analyze your spending with AI'
                 }
               </div>
+              {/* Gen Z Meme Display for Insights */}
+              {insightsTone === 'genz' && aiText && !aiLoading && (() => {
+                const memes = pickMemes(aiText, {
+                  summary,
+                  budgetExceeded: monthlyBudget > 0 ? total > monthlyBudget : null,
+                  topCategory: summary[0]?._id || '',
+                })
+                return memes.length > 0 ? (
+                  <div className="meme-container">
+                    {memes.map(m => (
+                      <div key={m.id} className="meme-card">
+                        <img src={m.src} alt={m.id} className="meme-img" />
+                      </div>
+                    ))}
+                  </div>
+                ) : null
+              })()}
             </div>
           </div>
         )}
@@ -595,6 +641,23 @@ export default function Dashboard() {
                     : budgetAiText || '// set a budget above, then click analyze for AI-powered budget insights'
                   }
                 </div>
+                {/* Gen Z Meme Display for Budget Analysis */}
+                {budgetTone === 'genz' && budgetAiText && !budgetLoading && (() => {
+                  const memes = pickMemes(budgetAiText, {
+                    summary: budgetResult?.categorySummary || summary,
+                    budgetExceeded: budgetResult?.exceeded ?? null,
+                    topCategory: (budgetResult?.categorySummary || summary)[0]?._id || '',
+                  })
+                  return memes.length > 0 ? (
+                    <div className="meme-container">
+                      {memes.map(m => (
+                        <div key={m.id} className="meme-card">
+                          <img src={m.src} alt={m.id} className="meme-img" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+                })()}
               </div>
             )}
           </div>

@@ -40,7 +40,7 @@ app.use('/api/budgets', budgetRoutes)
 app.use(errorHandler)
 
 app.listen(PORT, () => {
-  console.log(`🚀 NeonLedger server running on http://localhost:${PORT}`)
+  console.log(`🚀 Finance Master server running on http://localhost:${PORT}`)
   console.log(`🤖 AI model: ${process.env.OLLAMA_MODEL} via ${process.env.OLLAMA_BASE_URL}`)
   console.log(`🗄️  Database: ${process.env.MONGO_URI}`)
 })

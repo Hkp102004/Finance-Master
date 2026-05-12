@@ -30,7 +30,11 @@ export const categorizeTransaction = async (description) => {
   return categories.find((c) => result.includes(c)) || 'Other'
 }
 
-export const generateInsights = async (transactions, tone = 'genz') => {
+export const generateInsights = async (transactions, tone = 'genz', budget = 0, totalSpent = 0) => {
+  const budgetContext = budget > 0
+    ? `\n\nIMPORTANT BUDGET CONTEXT: The user has set a monthly budget of ₹${budget.toLocaleString('en-IN')}. They have spent ₹${totalSpent.toLocaleString('en-IN')} so far. They are ${totalSpent > budget ? `OVER budget by ₹${(totalSpent - budget).toLocaleString('en-IN')} — this is critical, emphasize this!` : `under budget with ₹${(budget - totalSpent).toLocaleString('en-IN')} remaining`}. Factor this budget into your analysis — compare spending against the budget, flag categories eating too much of the budget, and give budget-aware advice.`
+    : ''
+
   const systemGenz = `You are a Gen Z finance bestie who talks in full Gen Z slang. Analyze the user's spending data and give 3-4 concise, actionable insights.
 
 RULES FOR YOUR TONE:
@@ -39,8 +43,9 @@ RULES FOR YOUR TONE:
 - Still be specific with numbers — use ₹ for currency amounts
 - Be funny but actually helpful
 - Use emojis occasionally 💀🔥😭💸
+${budget > 0 ? '- ALWAYS reference their budget and whether they are on track or not' : ''}
 
-Example vibe: "Ngl bro your Food spending is absolutely unhinged 💀 you dropped ₹8,000 on eating out — that's lowkey your entire rent money gone on butter chicken. You need to lock in fr fr."`
+Example vibe: "Ngl bro your Food spending is absolutely unhinged 💀 you dropped ₹8,000 on eating out — that's lowkey your entire rent money gone on butter chicken. You need to lock in fr fr."` + budgetContext
 
   const systemPro = `You are a professional financial advisor. Analyze the user's spending data and provide 3-4 concise, actionable insights.
 
@@ -53,17 +58,22 @@ RULES FOR YOUR TONE:
 - Maintain a respectful, advisory tone throughout
 - Do NOT use slang, emojis, or casual language
 - Use bullet points for clarity
+${budget > 0 ? '- ALWAYS reference their budget and provide analysis relative to their budget target' : ''}
 
-Example: "Your food expenditure of ₹8,000 represents approximately 40% of your total monthly spending. This is significantly above the recommended 25-30% allocation. Consider meal planning and home cooking to reduce this category by ₹2,000-3,000 per month."`
+Example: "Your food expenditure of ₹8,000 represents approximately 40% of your total monthly spending. This is significantly above the recommended 25-30% allocation. Consider meal planning and home cooking to reduce this category by ₹2,000-3,000 per month."` + budgetContext
 
   const system = tone === 'professional' ? systemPro : systemGenz
   const prompt = tone === 'professional'
-    ? `Here is my spending data: ${JSON.stringify(transactions)}. Please provide a professional analysis of my spending patterns with actionable recommendations.`
-    : `Here is my spending data: ${JSON.stringify(transactions)}. Give me insights about my spending patterns. Talk like a Gen Z bestie.`
+    ? `Here is my spending data: ${JSON.stringify(transactions)}.${budget > 0 ? ` My monthly budget is ₹${budget.toLocaleString('en-IN')}.` : ''} Please provide a professional analysis of my spending patterns with actionable recommendations.`
+    : `Here is my spending data: ${JSON.stringify(transactions)}.${budget > 0 ? ` My monthly budget is ₹${budget.toLocaleString('en-IN')}.` : ''} Give me insights about my spending patterns. Talk like a Gen Z bestie.`
   return askOllama(prompt, system)
 }
 
-export const generateSavingTips = async (summary, tone = 'genz') => {
+export const generateSavingTips = async (summary, tone = 'genz', budget = 0, totalSpent = 0) => {
+  const budgetContext = budget > 0
+    ? `\n\nIMPORTANT BUDGET CONTEXT: The user's monthly budget is ₹${budget.toLocaleString('en-IN')}. They have spent ₹${totalSpent.toLocaleString('en-IN')} so far. They are ${totalSpent > budget ? `OVER budget by ₹${(totalSpent - budget).toLocaleString('en-IN')} — saving tips should be urgent and aggressive!` : `under budget with ₹${(budget - totalSpent).toLocaleString('en-IN')} remaining — tips should help them stay on track`}. Tailor your saving tips to help them stay within or get back within their ₹${budget.toLocaleString('en-IN')} budget.`
+    : ''
+
   const systemGenz = `You are a Gen Z finance guru who gives money-saving advice in full Gen Z slang. Give 4-5 specific, practical money-saving tips based on the user's spending categories.
 
 RULES FOR YOUR TONE:
@@ -72,8 +82,9 @@ RULES FOR YOUR TONE:
 - Still give genuinely useful tips with specific amounts in ₹
 - Use emojis to keep it fun 💰🔥😤💀
 - Be savage but caring
+${budget > 0 ? '- ALWAYS tie tips back to their budget goal and how much they need to save' : ''}
 
-Example vibe: "Bestie you need to LOCK IN 🔒 Stop ordering Zomato every day that's literally burning your wallet alive 💀 Cook at home and you'll save like ₹4,000/month no cap. That's a W right there."`
+Example vibe: "Bestie you need to LOCK IN 🔒 Stop ordering Zomato every day that's literally burning your wallet alive 💀 Cook at home and you'll save like ₹4,000/month no cap. That's a W right there."` + budgetContext
 
   const systemPro = `You are a certified financial planner providing money-saving strategies. Give 4-5 specific, practical money-saving recommendations based on the user's spending categories.
 
@@ -86,13 +97,14 @@ RULES FOR YOUR TONE:
 - Be encouraging but realistic
 - Do NOT use slang, emojis, or casual language
 - Use numbered points for structure
+${budget > 0 ? '- ALWAYS reference their budget and frame tips in terms of achieving their budget target' : ''}
 
-Example: "1. Dining & Food Optimization: Your current food expenditure can be reduced by approximately ₹4,000 per month through home meal preparation. Consider batch cooking on weekends and carrying packed lunches — this alone could yield annual savings of ₹48,000."`
+Example: "1. Dining & Food Optimization: Your current food expenditure can be reduced by approximately ₹4,000 per month through home meal preparation. Consider batch cooking on weekends and carrying packed lunches — this alone could yield annual savings of ₹48,000."` + budgetContext
 
   const system = tone === 'professional' ? systemPro : systemGenz
   const prompt = tone === 'professional'
-    ? `My spending by category: ${JSON.stringify(summary)}. Please provide professional money-saving recommendations based on my spending patterns.`
-    : `My spending by category: ${JSON.stringify(summary)}. Give me saving tips. Talk like a Gen Z bestie who actually cares about my money.`
+    ? `My spending by category: ${JSON.stringify(summary)}.${budget > 0 ? ` My monthly budget is ₹${budget.toLocaleString('en-IN')}.` : ''} Please provide professional money-saving recommendations based on my spending patterns.`
+    : `My spending by category: ${JSON.stringify(summary)}.${budget > 0 ? ` My monthly budget is ₹${budget.toLocaleString('en-IN')}.` : ''} Give me saving tips. Talk like a Gen Z bestie who actually cares about my money.`
   return askOllama(prompt, system)
 }
 

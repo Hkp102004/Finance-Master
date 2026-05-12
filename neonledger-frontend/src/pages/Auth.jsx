@@ -100,7 +100,7 @@ export default function Auth() {
       <div className="auth-card">
         <div className="auth-logo">
           <span className="auth-logo-hex">◆</span>
-          <span className="auth-logo-text">NEONLEDGER</span>
+          <span className="auth-logo-text">FINANCE MASTER</span>
         </div>
         <p className="auth-sub">// ai-powered finance tracker</p>
 

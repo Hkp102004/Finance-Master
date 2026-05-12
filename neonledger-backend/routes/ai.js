@@ -33,6 +33,7 @@ router.post('/categorize', async (req, res, next) => {
 router.get('/insights', async (req, res, next) => {
   try {
     const tone = req.query.tone || 'genz'
+    const budget = parseFloat(req.query.budget) || 0
     const transactions = await Transaction.find({ userId: req.user._id })
       .sort({ date: -1 })
       .limit(50)
@@ -42,7 +43,8 @@ router.get('/insights', async (req, res, next) => {
       return res.status(400).json({ message: 'No transactions to analyze' })
     }
 
-    const insights = await generateInsights(transactions, tone)
+    const totalSpent = transactions.reduce((sum, t) => sum + t.amount, 0)
+    const insights = await generateInsights(transactions, tone, budget, totalSpent)
     res.json({ insights })
   } catch (err) {
     next(err)
@@ -53,6 +55,7 @@ router.get('/insights', async (req, res, next) => {
 router.get('/tips', async (req, res, next) => {
   try {
     const tone = req.query.tone || 'genz'
+    const budget = parseFloat(req.query.budget) || 0
     const summary = await Transaction.aggregate([
       { $match: { userId: req.user._id } },
       { $group: { _id: '$category', total: { $sum: '$amount' } } },
@@ -62,7 +65,8 @@ router.get('/tips', async (req, res, next) => {
       return res.status(400).json({ message: 'No data to generate tips from' })
     }
 
-    const tips = await generateSavingTips(summary, tone)
+    const totalSpent = summary.reduce((sum, c) => sum + c.total, 0)
+    const tips = await generateSavingTips(summary, tone, budget, totalSpent)
     res.json({ tips })
   } catch (err) {
     next(err)

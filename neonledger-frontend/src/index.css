@@ -1404,6 +1404,74 @@ a {
   flex-shrink: 0;
 }
 
+/* MEME DISPLAY (Gen Z only) */
+.meme-container {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
+  animation: fadeUp 0.4s ease;
+}
+
+.meme-card {
+  background: var(--surface2);
+  border: 1px solid rgba(123, 77, 255, 0.35);
+  border-radius: var(--radius);
+  padding: 8px;
+  max-width: 260px;
+  box-shadow: 0 0 18px rgba(123, 77, 255, 0.12), 0 4px 24px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: memePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.meme-card::before {
+  content: '🔥 mood rn';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(123, 77, 255, 0.25);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 4px 0;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+}
+
+.meme-card:hover {
+  transform: scale(1.04) rotate(-1deg);
+  box-shadow: 0 0 28px rgba(123, 77, 255, 0.25), 0 8px 32px rgba(0,0,0,0.4);
+  border-color: rgba(123, 77, 255, 0.6);
+}
+
+.meme-img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin-top: 18px;
+}
+
+@keyframes memePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-5deg);
+  }
+  60% {
+    transform: scale(1.05) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 /* =====================
    RESPONSIVE
    ===================== */
