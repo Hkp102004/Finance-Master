@@ -44,10 +44,10 @@ export const transactionsAPI = {
 
 export const aiAPI = {
   categorize: (description) => api.post('/ai/categorize', { description }),
-  insights: () => api.get('/ai/insights'),
-  tips: () => api.get('/ai/tips'),
+  insights: (tone) => api.get('/ai/insights', { params: { tone } }),
+  tips: (tone) => api.get('/ai/tips', { params: { tone } }),
   predict: () => api.get('/ai/predict'),
-  budgetInsights: (monthlyBudget) => api.post('/ai/budget-insights', { monthlyBudget }),
+  budgetInsights: (monthlyBudget, tone) => api.post('/ai/budget-insights', { monthlyBudget, tone }),
 }
 
 export const budgetsAPI = {

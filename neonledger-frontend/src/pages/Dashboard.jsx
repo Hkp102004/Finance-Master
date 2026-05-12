@@ -27,6 +27,13 @@ export default function Dashboard() {
   const [csvStatus, setCsvStatus] = useState('')
   const [error, setError] = useState('')
 
+  // Tone state
+  const [insightsTone, setInsightsTone] = useState(() => localStorage.getItem('nl_insights_tone') || 'genz')
+  const [budgetTone, setBudgetTone] = useState(() => localStorage.getItem('nl_budget_tone') || 'genz')
+
+  const updateInsightsTone = (tone) => { setInsightsTone(tone); localStorage.setItem('nl_insights_tone', tone); setAiText('') }
+  const updateBudgetTone = (tone) => { setBudgetTone(tone); localStorage.setItem('nl_budget_tone', tone); setBudgetAiText('') }
+
   // Budget state
   const [monthlyBudget, setMonthlyBudget] = useState(() => {
     const saved = localStorage.getItem('nl_budget')
@@ -136,14 +143,23 @@ export default function Dashboard() {
     e.target.value = ''
   }
 
-  const runAI = async (type) => {
+  const runInsights = async () => {
     setAiLoading(true)
     setAiText('')
     try {
-      let res
-      if (type === 'insights') res = await aiAPI.insights()
-      else res = await aiAPI.tips()
-      setAiText(type === 'insights' ? res.data.insights : res.data.tips)
+      const res = await aiAPI.insights(insightsTone)
+      setAiText(res.data.insights)
+    } catch (err) {
+      setAiText('Error: ' + (err.response?.data?.message || 'AI unavailable'))
+    } finally { setAiLoading(false) }
+  }
+
+  const runTips = async () => {
+    setAiLoading(true)
+    setAiText('')
+    try {
+      const res = await aiAPI.tips(insightsTone)
+      setAiText(res.data.tips)
     } catch (err) {
       setAiText('Error: ' + (err.response?.data?.message || 'AI unavailable'))
     } finally { setAiLoading(false) }
@@ -170,7 +186,7 @@ export default function Dashboard() {
     setBudgetAiText('')
     setBudgetResult(null)
     try {
-      const res = await aiAPI.budgetInsights(monthlyBudget)
+      const res = await aiAPI.budgetInsights(monthlyBudget, budgetTone)
       setBudgetResult({
         totalSpent: res.data.totalSpent,
         budget: res.data.budget,
@@ -183,6 +199,27 @@ export default function Dashboard() {
       setBudgetAiText('Error: ' + (err.response?.data?.message || 'AI unavailable'))
     } finally { setBudgetLoading(false) }
   }
+
+  // Tone Toggle component
+  const ToneToggle = ({ tone, setTone }) => (
+    <div className="tone-toggle">
+      <span className="tone-label">AI TONE</span>
+      <div className="tone-switch">
+        <button
+          className={`tone-btn ${tone === 'genz' ? 'active genz' : ''}`}
+          onClick={() => setTone('genz')}
+        >
+          🔥 GEN Z
+        </button>
+        <button
+          className={`tone-btn ${tone === 'professional' ? 'active pro' : ''}`}
+          onClick={() => setTone('professional')}
+        >
+          💼 PRO
+        </button>
+      </div>
+    </div>
+  )
 
   const chartData = summary.map(s => ({ name: s._id, value: s.total, color: CAT_COLORS[s._id] || '#666' }))
 
@@ -335,10 +372,13 @@ export default function Dashboard() {
         {tab === 'INSIGHTS' && (
           <div className="tab-content" style={{ animation: 'fadeUp 0.3s ease' }}>
             <div className="panel">
-              <div className="panel-title">AI SPENDING ANALYSIS</div>
+              <div className="panel-header-row">
+                <div className="panel-title">AI SPENDING ANALYSIS</div>
+                <ToneToggle tone={insightsTone} setTone={updateInsightsTone} />
+              </div>
               <div className="ai-actions">
-                <button className="btn btn-ai" onClick={() => runAI('insights')} disabled={aiLoading}>GENERATE INSIGHTS ↗</button>
-                <button className="btn btn-outline" onClick={() => runAI('tips')} disabled={aiLoading}>SAVING TIPS ↗</button>
+                <button className="btn btn-ai" onClick={runInsights} disabled={aiLoading}>GENERATE INSIGHTS ↗</button>
+                <button className="btn btn-outline" onClick={runTips} disabled={aiLoading}>SAVING TIPS ↗</button>
               </div>
               <div className="ai-box">
                 {aiLoading
@@ -520,7 +560,10 @@ export default function Dashboard() {
             {/* AI Budget Insights */}
             {monthlyBudget > 0 && (
               <div className="panel">
-                <div className="panel-title">AI BUDGET ANALYSIS</div>
+                <div className="panel-header-row">
+                  <div className="panel-title">AI BUDGET ANALYSIS</div>
+                  <ToneToggle tone={budgetTone} setTone={updateBudgetTone} />
+                </div>
                 <div className="ai-actions">
                   <button className="btn btn-ai" onClick={runBudgetAnalysis} disabled={budgetLoading}>
                     {budgetLoading ? '...' : 'ANALYZE MY BUDGET ↗'}

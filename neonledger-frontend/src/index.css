@@ -834,6 +834,60 @@ a {
   animation: glow-pulse 1.5s ease infinite;
 }
 
+/* TONE TOGGLE */
+.tone-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tone-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.tone-switch {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 2px;
+}
+
+.tone-btn {
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.tone-btn:hover:not(.active) {
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tone-btn.active.genz {
+  background: var(--accent2);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(123, 77, 255, 0.4), inset 0 0 8px rgba(255, 255, 255, 0.1);
+}
+
+.tone-btn.active.pro {
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 14px rgba(94, 187, 255, 0.4), inset 0 0 8px rgba(255, 255, 255, 0.1);
+}
+
 /* PANEL HEADER ROW */
 .panel-header-row {
   display: flex;

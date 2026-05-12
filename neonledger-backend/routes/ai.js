@@ -32,6 +32,7 @@ router.post('/categorize', async (req, res, next) => {
 // GET /api/ai/insights
 router.get('/insights', async (req, res, next) => {
   try {
+    const tone = req.query.tone || 'genz'
     const transactions = await Transaction.find({ userId: req.user._id })
       .sort({ date: -1 })
       .limit(50)
@@ -41,7 +42,7 @@ router.get('/insights', async (req, res, next) => {
       return res.status(400).json({ message: 'No transactions to analyze' })
     }
 
-    const insights = await generateInsights(transactions)
+    const insights = await generateInsights(transactions, tone)
     res.json({ insights })
   } catch (err) {
     next(err)
@@ -51,6 +52,7 @@ router.get('/insights', async (req, res, next) => {
 // GET /api/ai/tips
 router.get('/tips', async (req, res, next) => {
   try {
+    const tone = req.query.tone || 'genz'
     const summary = await Transaction.aggregate([
       { $match: { userId: req.user._id } },
       { $group: { _id: '$category', total: { $sum: '$amount' } } },
@@ -60,7 +62,7 @@ router.get('/tips', async (req, res, next) => {
       return res.status(400).json({ message: 'No data to generate tips from' })
     }
 
-    const tips = await generateSavingTips(summary)
+    const tips = await generateSavingTips(summary, tone)
     res.json({ tips })
   } catch (err) {
     next(err)
@@ -89,7 +91,8 @@ router.get('/predict', async (req, res, next) => {
 // POST /api/ai/budget-insights
 router.post('/budget-insights', async (req, res, next) => {
   try {
-    const { monthlyBudget } = req.body
+    const { monthlyBudget, tone } = req.body
+    const selectedTone = tone || 'genz'
     if (!monthlyBudget || monthlyBudget <= 0) {
       return res.status(400).json({ message: 'A valid monthly budget is required' })
     }
@@ -114,7 +117,7 @@ router.post('/budget-insights', async (req, res, next) => {
       { $sort: { total: -1 } },
     ])
 
-    const insights = await generateBudgetInsights(transactions, categorySummary, parseFloat(monthlyBudget))
+    const insights = await generateBudgetInsights(transactions, categorySummary, parseFloat(monthlyBudget), selectedTone)
     const totalSpent = categorySummary.reduce((sum, c) => sum + c.total, 0)
 
     res.json({
