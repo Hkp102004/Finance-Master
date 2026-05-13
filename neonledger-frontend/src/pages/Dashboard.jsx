@@ -263,7 +263,7 @@ export default function Dashboard() {
       <header className="dash-header">
         <div className="dash-logo">
           <span className="dash-logo-gem">◆</span>
-          <span className="dash-logo-name">FINANCE MASTER</span>
+          <span className="dash-logo-name">NEONLEDGER</span>
         </div>
         <nav className="dash-nav">
           {TABS.map(t => (
